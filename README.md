@@ -182,6 +182,41 @@ config = ProcessingConfig(
 
 - presidio-analyzer
 - spacy (with language models)
+
+## Environment Variables
+
+The PII module supports configuration through environment variables. Create a `.env` file in the project root (see `.env.example` for a template) with the following variables:
+
+### Redis Configuration
+
+```json
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_PASSWORD=
+REDIS_KEY_PREFIX=pii_anonymizer:
+REDIS_EXPIRATION_TIME=3600
+```
+
+### Cache Configuration
+
+```json
+CACHE_ENABLED=true
+CACHE_MAX_SIZE=1000
+```
+
+### Processing Configuration
+
+```json
+DEFAULT_LANGUAGE=en
+DEFAULT_CONFIDENCE_THRESHOLD=0.5
+DEFAULT_MAX_WORKERS=4
+DEFAULT_CHUNK_SIZE=2000
+PRESERVE_FORMAT=true
+```
+
+These environment variables will be used as defaults if not explicitly provided in the code.
+
 - Standard library modules: asyncio, threading, hashlib, secrets
 
 ## Error Handling

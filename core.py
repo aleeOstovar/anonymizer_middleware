@@ -67,16 +67,39 @@ class AnonymizedEntity:
 @dataclass
 class ProcessingConfig:
     """Configuration for anonymization processing with validation"""
-    language: Language = Language.ENGLISH
+    language: Language = None
     entities_to_process: Optional[List[str]] = None
-    confidence_threshold: float = 0.5
-    preserve_format: bool = True
+    confidence_threshold: float = None
+    preserve_format: bool = None
     custom_fake_generators: Optional[Dict[str, Callable]] = None
-    max_workers: int = 4
-    chunk_size: int = 2000
-    cache_enabled: bool = True
+    max_workers: int = None
+    chunk_size: int = None
+    cache_enabled: bool = None
     
     def __post_init__(self):
+        import os
+        
+        # Set defaults from environment variables if not provided
+        if self.language is None:
+            lang_code = os.environ.get('DEFAULT_LANGUAGE', 'en')
+            self.language = Language.GERMAN if lang_code == 'de' else Language.ENGLISH
+            
+        if self.confidence_threshold is None:
+            self.confidence_threshold = float(os.environ.get('DEFAULT_CONFIDENCE_THRESHOLD', 0.5))
+            
+        if self.preserve_format is None:
+            self.preserve_format = os.environ.get('PRESERVE_FORMAT', 'true').lower() == 'true'
+            
+        if self.max_workers is None:
+            self.max_workers = int(os.environ.get('DEFAULT_MAX_WORKERS', 4))
+            
+        if self.chunk_size is None:
+            self.chunk_size = int(os.environ.get('DEFAULT_CHUNK_SIZE', 2000))
+            
+        if self.cache_enabled is None:
+            self.cache_enabled = os.environ.get('CACHE_ENABLED', 'true').lower() == 'true'
+    
+        # Validate configuration
         if not 0 <= self.confidence_threshold <= 1:
             raise ValueError("Confidence threshold must be between 0 and 1")
         if self.max_workers < 1:

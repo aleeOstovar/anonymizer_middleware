@@ -3,6 +3,7 @@ Caching strategies for the PII anonymizer module.
 Implements the Strategy pattern for different caching approaches.
 """
 
+import os
 import threading
 from typing import Optional, Any
 
@@ -10,10 +11,10 @@ from typing import Optional, Any
 class ThreadSafeLRUCache:
     """Thread-safe LRU cache implementation"""
     
-    def __init__(self, maxsize: int = 1000):
+    def __init__(self, maxsize: int = None):
         self._cache = {}
         self._lock = threading.RLock()
-        self.maxsize = maxsize
+        self.maxsize = maxsize or int(os.environ.get('CACHE_MAX_SIZE', 1000))
         self._access_order = []
     
     def get(self, key: str) -> Optional[Any]:

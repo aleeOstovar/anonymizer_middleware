@@ -122,18 +122,19 @@ class TestRedisCache(unittest.TestCase):
     
     def test_set_without_expiration(self):
         """Test setting a value without expiration"""
-        # Create cache with no expiration
-        no_expiration_cache = RedisCache(expiration_time=0)
-        
-        # Set value in cache
-        test_data = {"name": "John", "age": 30}
-        no_expiration_cache.set("test_key", test_data)
-        
-        # Verify Redis set was called with correct parameters
-        self.redis_mock.set.assert_called_once_with(
-            "pii_anonymizer:test_key",
-            json.dumps(test_data)
-        )
+        # Create cache with no expiration and ensure environment variable doesn't override
+        with unittest.mock.patch.dict(os.environ, {'REDIS_EXPIRATION_TIME': '0'}):
+            no_expiration_cache = RedisCache(expiration_time=0)
+            
+            # Set value in cache
+            test_data = {"name": "John", "age": 30}
+            no_expiration_cache.set("test_key", test_data)
+            
+            # Verify Redis set was called with correct parameters
+            self.redis_mock.set.assert_called_once_with(
+                "pii_anonymizer:test_key",
+                json.dumps(test_data)
+            )
     
     def test_set_non_serializable_value(self):
         """Test setting a value that can't be serialized"""

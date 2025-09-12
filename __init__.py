@@ -1,3 +1,5 @@
+import env_loader
+
 from core import (
     Language,
     EntityMatch,

@@ -4,6 +4,7 @@ Implements the Strategy pattern for Redis-based caching.
 """
 
 import json
+import os
 from typing import Optional, Any
 import redis
 from interfaces import ICacheStrategy
@@ -14,12 +15,12 @@ class RedisCache(ICacheStrategy):
     
     def __init__(
         self, 
-        host: str = "localhost", 
-        port: int = 6379, 
-        db: int = 0, 
+        host: str = None, 
+        port: int = None, 
+        db: int = None, 
         password: Optional[str] = None,
-        key_prefix: str = "pii_anonymizer:",
-        expiration_time: int = 3600  # 1 hour default
+        key_prefix: str = None,
+        expiration_time: int = None
     ):
         """
         Initialize Redis cache
@@ -32,15 +33,16 @@ class RedisCache(ICacheStrategy):
             key_prefix: Prefix for all keys stored in Redis
             expiration_time: Time in seconds before keys expire (0 for no expiration)
         """
+        # Get configuration from environment variables with fallbacks
         self._redis = redis.Redis(
-            host=host,
-            port=port,
-            db=db,
-            password=password,
+            host=host or os.environ.get('REDIS_HOST', 'localhost'),
+            port=int(port or os.environ.get('REDIS_PORT', 6379)),
+            db=int(db or os.environ.get('REDIS_DB', 0)),
+            password=password or os.environ.get('REDIS_PASSWORD', None),
             decode_responses=False  
         )
-        self._key_prefix = key_prefix
-        self._expiration_time = expiration_time
+        self._key_prefix = key_prefix or os.environ.get('REDIS_KEY_PREFIX', 'pii_anonymizer:')
+        self._expiration_time = int(expiration_time or os.environ.get('REDIS_EXPIRATION_TIME', 3600))
     
     def _format_key(self, key: str) -> str:
         """Format key with prefix"""

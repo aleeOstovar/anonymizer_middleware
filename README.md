@@ -1,231 +1,321 @@
-# PII Anonymizer Module
+# PII Anonymizer
 
-A comprehensive PII detection and anonymization library with support for multiple languages, async processing, and architectural best practices following SOLID principles.
+A robust, enterprise-grade Python library for detecting and anonymizing Personally Identifiable Information (PII) in text data. Built with architectural best practices including async/await patterns, SOLID principles, and comprehensive caching strategies.
 
-## Module Structure
+## Features
 
-```md
-pii_anonymizer/
-├── __init__.py              # Main module exports
-├── core.py                  # Core types and data classes
-├── interfaces.py            # Protocol interfaces (SOLID - Interface Segregation)
-├── exceptions.py            # Exception hierarchy
-├── cache.py                 # Caching strategies (Strategy pattern)
-├── recognizers_base.py      # Abstract base recognizer
-├── recognizers_english.py   # English PII recognizers
-├── recognizers_german.py    # German PII recognizers  
-├── recognizers_factory.py   # Factory for recognizers
-├── fake_generator.py        # Fake data generation
-├── analyzer.py              # Async PII analyzer engine
-├── processing.py            # Main processing engine
-├── deanonymization.py       # Deanonymization service
-├── facade.py                # Main facade class
-├── monitoring.py            # Performance monitoring
-└── README.md                # This file
+- **Multi-language Support**: English and German text processing with language-specific recognizers
+- **Async/Await Architecture**: High-performance asynchronous processing with proper resource management
+- **Advanced PII Detection**: Leverages Microsoft Presidio for accurate entity recognition
+- **Flexible Anonymization**: Configurable fake data generation using Faker library
+- **Caching Strategies**: In-memory LRU cache and Redis cache support for improved performance
+- **Deanonymization**: Reversible anonymization with entity mapping
+- **Comprehensive Testing**: Full test coverage with async testing patterns
+- **Type Safety**: Complete type hints and validation
+
+## Supported PII Entities
+
+### Universal Entities
+
+- Credit Card Numbers
+- Email Addresses
+- Phone Numbers
+- IP Addresses
+- URLs
+- Dates and Times
+- Person Names
+- Locations
+
+### German-Specific Entities
+
+- German Tax ID (Steuer-ID)
+- German IBAN
+- German Insurance Numbers
+- German ID Card Numbers
+
+## Installation
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Install spaCy language models
+python -m spacy download en_core_web_lg
+python -m spacy download de_core_news_lg
 ```
-
-## Key Features
-
-- **Multi-language support**: English and German with extensible architecture
-- **Async processing**: Full async/await support with proper resource management
-- **SOLID principles**: Clean architecture with proper separation of concerns
-- **Comprehensive PII detection**: 30+ entity types including crypto wallets, medical licenses, German tax IDs, IBANs, etc.
-- **Configurable anonymization**: Custom fake value generators and confidence thresholds
-- **Performance monitoring**: Built-in metrics and caching
-- **Deanonymization**: Restore original values using entity mappings
 
 ## Quick Start
 
-```python
-from pii_anonymizer import ArchitecturalPIIAnonymizer, Language
+### Basic Usage
 
-# Initialize the anonymizer
+```python
+import asyncio
+from facade import ArchitecturalPIIAnonymizer
+from core import Language
+
+async def main():
+    anonymizer = ArchitecturalPIIAnonymizer()
+
+    text = "John Smith's email is john.smith@example.com and his phone is +1-555-123-4567"
+
+    result = await anonymizer.anonymize_text_async(
+        text=text,
+        language=Language.ENGLISH,
+        confidence_threshold=0.7
+    )
+
+    print("Anonymized:", result.anonymized_data)
+    print("Entities found:", len(result.entities_map))
+
+asyncio.run(main())
+```
+
+### Synchronous Usage
+
+```python
+from facade import ArchitecturalPIIAnonymizer
+from core import Language
+
 anonymizer = ArchitecturalPIIAnonymizer()
 
-# Anonymize text (async)
-result = await anonymizer.anonymize_text_async(
-    text="My email is john.doe@company.com and phone is +49 123 456789",
-    language=Language.GERMAN,
-    confidence_threshold=0.7
-)
-
-print(result.anonymized_data)  # Anonymized text
-print(result.entities_map)     # Mapping of original to fake values
-
-# Synchronous version
-result_sync = anonymizer.anonymize_text_sync(
-    text="Same text here",
+result = anonymizer.anonymize_text_sync(
+    text="Contact Jane Doe at jane.doe@company.com",
     language=Language.ENGLISH
 )
 
-# Deanonymize
-original = anonymizer.deanonymize_text(
-    result.anonymized_data, 
-    result.entities_map
+print("Anonymized:", result.anonymized_data)
+```
+
+### German Text Processing
+
+```python
+import asyncio
+from facade import ArchitecturalPIIAnonymizer
+from core import Language
+
+async def anonymize_german():
+    anonymizer = ArchitecturalPIIAnonymizer()
+
+    german_text = """
+    Name: Thomas Schmidt
+    E-Mail: thomas.schmidt@example.de
+    IBAN: DE89 3704 0044 0532 0130 00
+    """
+
+    result = await anonymizer.anonymize_text_async(
+        text=german_text,
+        language=Language.GERMAN,
+        confidence_threshold=0.7
+    )
+
+    print("Anonymized German text:", result.anonymized_data)
+
+asyncio.run(anonymize_german())
+```
+
+## Advanced Configuration
+
+### Custom Processing Configuration
+
+```python
+from core import ProcessingConfig, Language
+
+config = ProcessingConfig(
+    language=Language.ENGLISH,
+    entities_to_process=["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER"],
+    confidence_threshold=0.8,
+    preserve_format=True,
+    max_workers=8,
+    chunk_size=5000,
+    cache_enabled=True
 )
 ```
 
-## Advanced Usage
-
-### Custom Fake Generators
+### Custom Fake Data Generators
 
 ```python
-def custom_email_generator(original_value: str) -> str:
-    return f"masked_{len(original_value)}@example.org"
+def custom_email_generator(original_value):
+    return f"user{hash(original_value) % 1000}@company.com"
+
+custom_generators = {
+    "EMAIL_ADDRESS": custom_email_generator
+}
 
 result = await anonymizer.anonymize_text_async(
-    text="Contact: user@domain.com",
-    custom_fake_generators={
-        "EMAIL_ADDRESS": custom_email_generator
-    }
+    text=text,
+    custom_fake_generators=custom_generators
 )
 ```
 
-### Analysis Only (No Anonymization)
+### Batch Processing
 
 ```python
-# Detect PII without anonymizing
+async def batch_process():
+    anonymizer = ArchitecturalPIIAnonymizer()
+    config = ProcessingConfig(language=Language.ENGLISH)
+
+    async with anonymizer.batch_processing_context(config) as engine:
+        for text in text_batch:
+            result = await engine.process_text_async(text)
+            # Process result
+```
+
+## Deanonymization
+
+```python
+# Anonymize text
+result = anonymizer.anonymize_text_sync(text="John Smith")
+
+# Later, restore original values
+restored = anonymizer.deanonymize_text(
+    anonymized_text=result.anonymized_data,
+    entities_map=result.entities_map
+)
+
+print("Restored:", restored.anonymized_data)  # "John Smith"
+```
+
+## Analysis Only (No Anonymization)
+
+```python
+# Just detect PII without anonymizing
 entities = await anonymizer.analyze_only_async(
-    text="John Smith lives at 123 Main St",
-    entities_to_find=["PERSON", "LOCATION"],
-    confidence_threshold=0.6
+    text="Contact John at john@example.com",
+    language=Language.ENGLISH,
+    confidence_threshold=0.7
 )
 
 for entity in entities:
     print(f"Found {entity['entity_type']}: {entity['text']}")
 ```
 
-### Batch Processing
+## Caching
+
+### In-Memory Cache (Default)
 
 ```python
-from pii_anonymizer import ProcessingConfig
-
-config = ProcessingConfig(
-    language=Language.GERMAN,
-    confidence_threshold=0.8,
-    cache_enabled=True,
-    max_workers=8
-)
-
-async with anonymizer.batch_processing_context(config) as engine:
-    texts = ["Text 1...", "Text 2...", "Text 3..."]
-    results = []
-    for text in texts:
-        result = await engine.process_text_async(text)
-        results.append(result)
+# Automatic LRU cache with 1000 item limit
+result = await anonymizer.anonymize_text_async(text, cache_enabled=True)
 ```
 
-### Performance Monitoring
+### Redis Cache
 
 ```python
-from pii_anonymizer import PerformanceMonitor
-
-monitor = PerformanceMonitor()
-
-# Process some texts...
-result = anonymizer.anonymize_text_sync("Some PII text here")
-monitor.record_processing(result)
-
-# Get performance metrics
-metrics = monitor.get_average_performance()
-print(f"Average processing time: {metrics['avg_processing_time']:.3f}s")
-print(f"Characters per second: {metrics['chars_per_second']:.0f}")
+# Configure Redis in environment variables
+# REDIS_HOST, REDIS_PORT, REDIS_DB, REDIS_PASSWORD
+result = await anonymizer.anonymize_text_async(text, cache_enabled=True)
 ```
 
-## Supported Languages
+## Environment Configuration
 
-- **English**: Crypto wallets, medical licenses, professional licenses, NRP indicators
-- **German**: Tax IDs, IBANs, phone numbers, addresses, health insurance, VAT IDs, and 20+ other German-specific entities
+Create a `.env` file for default settings:
 
-## Supported Entity Types
+```env
+DEFAULT_LANGUAGE=en
+DEFAULT_CONFIDENCE_THRESHOLD=0.5
+PRESERVE_FORMAT=true
+DEFAULT_MAX_WORKERS=4
+DEFAULT_CHUNK_SIZE=2000
+CACHE_ENABLED=true
 
-### Universal
-
-- EMAIL_ADDRESS, PHONE_NUMBER, CREDIT_CARD, IP_ADDRESS, URL, PERSON, LOCATION, DATE_TIME, IBAN_CODE
-
-### English-Specific  
-
-- CRYPTO_WALLET, MEDICAL_LICENSE, PROFESSIONAL_LICENSE, NRP
-
-### German-Specific
-
-- DE_TAX_ID, DE_IBAN, DE_PHONE_NUMBER, DE_HEALTH_INSURANCE, DE_VAT_ID, DE_PASSPORT, DE_ID_CARD, DE_DRIVING_LICENSE, DE_STREET_ADDRESS, DE_POSTAL_CODE, and more
-
-## Architecture Highlights
-
-- **Interface Segregation**: Clean protocols for analyzers, recognizers, and generators
-- **Dependency Inversion**: Abstract interfaces with concrete implementations  
-- **Single Responsibility**: Each class has one clear purpose
-- **Open/Closed**: Easy to extend with new languages and recognizers
-- **Factory Pattern**: Centralized creation of language-specific recognizers
-- **Strategy Pattern**: Pluggable caching strategies
-- **Facade Pattern**: Simplified interface hiding system complexity
-
-## Configuration Options
-
-```python
-from pii_anonymizer import ProcessingConfig, Language
-
-config = ProcessingConfig(
-    language=Language.GERMAN,
-    entities_to_process=["PERSON", "EMAIL_ADDRESS", "DE_TAX_ID"],
-    confidence_threshold=0.7,
-    preserve_format=True,
-    custom_fake_generators=custom_generators,
-    max_workers=4,
-    chunk_size=2000,
-    cache_enabled=True
-)
-```
-
-## Dependencies
-
-- presidio-analyzer
-- spacy (with language models)
-
-## Environment Variables
-
-The PII module supports configuration through environment variables. Create a `.env` file in the project root (see `.env.example` for a template) with the following variables:
-
-### Redis Configuration
-
-```json
+# Redis Configuration (optional)
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_DB=0
 REDIS_PASSWORD=
-REDIS_KEY_PREFIX=pii_anonymizer:
-REDIS_EXPIRATION_TIME=3600
 ```
 
-### Cache Configuration
+## Architecture
 
-```json
-CACHE_ENABLED=true
-CACHE_MAX_SIZE=1000
+The library follows SOLID principles and implements several design patterns:
+
+- **Facade Pattern**: `ArchitecturalPIIAnonymizer` provides a simplified interface
+- **Factory Pattern**: `RecognizerFactory` creates language-specific recognizers
+- **Strategy Pattern**: Pluggable cache strategies (LRU, Redis, No-cache)
+- **Async Context Managers**: Proper resource management for async operations
+- **Dependency Injection**: Configurable components for testing and flexibility
+
+## Performance Features
+
+- **Asynchronous Processing**: Non-blocking I/O operations
+- **Chunked Processing**: Large texts split into manageable chunks
+- **Thread Pool Execution**: CPU-intensive tasks run in thread pools
+- **Intelligent Caching**: Reduces redundant analysis operations
+- **Memory Management**: Proper cleanup and resource management
+
+## Testing
+
+Run the test suite:
+
+```bash
+# Run all tests
+python -m pytest tests/
+
+# Run specific test file
+python -m unittest tests.test_facade
+
+# Run with coverage
+python -m pytest tests/ --cov=. --cov-report=html
 ```
-
-### Processing Configuration
-
-```json
-DEFAULT_LANGUAGE=en
-DEFAULT_CONFIDENCE_THRESHOLD=0.5
-DEFAULT_MAX_WORKERS=4
-DEFAULT_CHUNK_SIZE=2000
-PRESERVE_FORMAT=true
-```
-
-These environment variables will be used as defaults if not explicitly provided in the code.
-
-- Standard library modules: asyncio, threading, hashlib, secrets
 
 ## Error Handling
 
-The module provides a comprehensive exception hierarchy:
+The library provides comprehensive error handling:
 
-- `PIIAnonymizerError`: Base exception
-- `ConfigurationError`: Configuration issues
-- `ProcessingError`: Processing failures  
-- `AnalysisError`: Analysis engine errors
+```python
+from exceptions import PIIAnonymizerError, ConfigurationError, ProcessingError
 
-All methods provide detailed error context and proper exception chaining
+try:
+    result = await anonymizer.anonymize_text_async(text)
+except ConfigurationError as e:
+    print(f"Configuration error: {e}")
+except ProcessingError as e:
+    print(f"Processing error: {e}")
+except PIIAnonymizerError as e:
+    print(f"General error: {e}")
+```
+
+## API Reference
+
+### Main Classes
+
+- `ArchitecturalPIIAnonymizer`: Main facade class
+- `ProcessingConfig`: Configuration for processing
+- `ProcessingResult`: Result container with metrics
+- `Language`: Supported languages enum
+- `EntityMatch`: Detected entity representation
+- `AnonymizedEntity`: Anonymized entity with metadata
+
+### Key Methods
+
+- `anonymize_text_async()`: Async text anonymization
+- `anonymize_text_sync()`: Sync text anonymization
+- `analyze_only_async()`: PII detection without anonymization
+- `deanonymize_text()`: Restore original values
+- `get_supported_entities()`: List supported entity types
+- `get_supported_languages()`: List supported languages
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Ensure all tests pass
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Dependencies
+
+- `presidio-analyzer>=2.2.0`: Core PII detection engine
+- `spacy>=3.5.0`: Natural language processing
+- `faker>=18.0.0`: Fake data generation
+- `redis>=4.5.0`: Redis caching support
+- `asyncio>=3.4.3`: Async support
+- `typing-extensions>=4.5.0`: Enhanced type hints
+
+## Version
+
+Current version: 1.0.0

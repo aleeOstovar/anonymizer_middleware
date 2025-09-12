@@ -24,6 +24,7 @@ class AsyncPIIAnalyzerEngine:
     
     def __init__(self, cache_strategy: Optional[ICacheStrategy] = None):
         from cache import ThreadSafeLRUCache
+        from redis_cache import RedisCache
         
         self._analyzers: Dict[str, AnalyzerEngine] = {}
         self._analyzer_lock = threading.RLock()
@@ -101,7 +102,7 @@ class AsyncPIIAnalyzerEngine:
         
         # Perform analysis in thread pool
         if not self._executor:
-            from exceptions import ProcessingError
+            from .exceptions import ProcessingError
             raise ProcessingError("Analyzer not properly initialized. Use async context manager.")
         
         loop = asyncio.get_running_loop()

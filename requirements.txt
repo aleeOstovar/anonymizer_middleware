@@ -1,0 +1,14 @@
+presidio-analyzer>=2.2.0
+spacy>=3.5.0
+faker>=18.0.0
+redis>=4.5.0
+
+# Language models for spaCy
+# Install with: python -m spacy download en_core_web_lg
+# Install with: python -m spacy download de_core_news_lg
+
+# Async support
+asyncio>=3.4.3
+
+# Type hints
+typing-extensions>=4.5.0

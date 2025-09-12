@@ -22,9 +22,6 @@ from interfaces import (
     ICacheStrategy
 )
 
-from cache import ThreadSafeLRUCache, NoCacheStrategy
-from redis_cache import RedisCache
-
 from monitoring import PerformanceMonitor
 
 __version__ = "1.0.0"
@@ -51,11 +48,6 @@ __all__ = [
     "IRecognizer", 
     "IFakeDataGenerator",
     "ICacheStrategy",
-    
-    # Cache implementations
-    "ThreadSafeLRUCache",
-    "NoCacheStrategy",
-    "RedisCache",
     
     # Utilities
     "PerformanceMonitor"
